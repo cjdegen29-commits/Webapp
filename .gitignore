@@ -1,1 +1,20 @@
+# Dependencies
+**/node_modules/
+**/dist/
+**/.npm/
+
+# Environment Secrets (Crucial for client data)
 **/.env
+**/.env.local
+**/.env.*.local
+
+# Tesseract Specific
+# Ignore the large traineddata files if you download them locally
+**/*.traineddata
+
+# OS Specific
+**/.DS_Store
+**/Thumbs.db
+
+# VS Code Specific
+**/.vscode/
