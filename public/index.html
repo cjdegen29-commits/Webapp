@@ -3,12 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Page</title>
+    <title>Distributor OCR Processor</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .upload-box { border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px;}
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
+        pre { background: #f4f4f4; padding: 15px; overflow-x: auto; border-radius: 4px; }
+        .error { color: red; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-    <h1>Hello</h1>
-    
-    <input type="file" accept="image/*" capture="environment">
+    <h2>Upload Distributor Receipts</h2>
+    <p>Select up to 3 receipt images (Summary, Gross Profit, Payments).</p>
+
+    <form id="ocr-form">
+        <div class="upload-box">
+            <input type="file" id="receipts" name="receipts" accept="image/*" multiple required>
+        </div>
+        <button type="submit" id="submit-btn">Process Receipts</button>
+    </form>
+
+    <h3>Extraction Results:</h3>
+    <div id="status-message"></div>
+    <pre id="json-output">Awaiting upload...</pre>
+
+    <script src="app.js"></script>
 </body>
 </html>
