@@ -1,121 +1,59 @@
 // webapp/functions/api/process.js
 
-const EXTRACTION_PROMPT = `
-  You are a non-verbal specialized receipt parser.
-  Identify if each receipt is 'summary', 'gross_profit', or 'payments'.
-  
-  Return ONLY a JSON object with a "receipts" key containing an array of objects:
-  {
-    "receipts": [
-      {
-        "receipt_type": "summary" | "gross_profit" | "payments",
+const SYSTEM_PROMPT = `
+    You will receive images of three types of receipts: 'Distributor's Summary', 'Distributor's Gross Profit', and 'Payments Received'.
+    
+    Extract the data into the following JSON format. Ensure all currency values are Numbers (not strings) and dates are MM/DD/YYYY.
+
+    JSON Structure:
+    {
+      "distributor_summary": {
         "date": "MM/DD/YYYY",
         "gst_hst_charged": 0.0,
-        "total_absorptions_odf": 0.0,
+        "total_absorptions_odf": 0.0, 
         "total_absorptions_dist": 0.0,
-        "total_old_dutch_credits": 0.0,
-        "distributor_gross_profit": 0.0,
+        "total_old_dutch_credits": 0.0
+      },
+      "gross_profit": {
+        "date": "MM/DD/YYYY",
+        "distributor_gross_profit": 0.0
+      },
+      "payments_received": {
+        "date": "MM/DD/YYYY",
         "total_cash": 0.0,
         "total_check": 0.0
+      },
+      "metadata": {
+        "dates_consistent": boolean
       }
-    ]
-  }
+    }
 
-  Rules:
-  - Use null for missing values.
-  - 'total_absorptions' must come from the TOTAL row.
-  - Output ONLY raw JSON. No markdown, no conversational text.
+    Specific Extraction Rules:
+    1. For 'Distributor's Summary':
+       - 'total_absorptions_odf' is the value in the 'TOTAL' row under the 'ODF' column.
+       - 'total_absorptions_dist' is the value in the 'TOTAL' row under the 'DIST' column.
+       - 'total_old_dutch_credits' is found next to 'TOTAL OLD DUTCH CREDITS'.
+    2. For 'Distributor's Gross Profit':
+       - 'distributor_gross_profit' is the final value labeled 'DISTRIBUTOR'S GROSS PROFIT'.
+    3. Date Validation:
+       - Compare the dates across all provided receipts. 
+       - Set 'dates_consistent' to true only if all extracted dates match exactly.
+       - If dates do NOT match, set 'dates_consistent' to false and return null for ALL other fields.
+    4. General:
+       - If a receipt type or specific field is not found, return null for that field.
+       - Do not return ANYTHING other than a .json string.
+       - Use raw text strings without markdown or other formatting.
 `;
 
-/**
- * Helper to convert ArrayBuffer to Base64 without using Node.js 'Buffer'
- * This is compatible with standard Cloudflare Workers environment.
- */
 function arrayBufferToBase64(buffer) {
   let binary = '';
   const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCodePoint(bytes[i]);
+  const chunk_size = 8192;
+  for (let i = 0; i < bytes.length; i += chunk_size) {
+    const chunk = bytes.subarray(i, i + chunk_size);
+    binary += String.fromCodePoint(...chunk);
   }
   return btoa(binary);
-}
-
-async function extractBatch(imageFiles, context) {
-  const messages = [
-    {
-      role: "system",
-      content: "You are a specialized financial OCR assistant. Return only raw JSON."
-    },
-    {
-      role: "user",
-      content: [{ type: "text", text: EXTRACTION_PROMPT }]
-    }
-  ];
-
-  // Process each image file into the message sequence
-  for (const file of imageFiles) {
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = arrayBufferToBase64(arrayBuffer);
-    
-    messages[1].content.push({
-      type: "image_url",
-      image_url: { url: `data:${file.type};base64,${base64}` }
-    });
-  }
-
-  // AI Run with increased max_tokens and explicit JSON format
-  const aiResponse = await context.env.AI.run("@cf/moonshotai/kimi-k2.5", {
-    messages,
-    max_tokens: 1800, 
-    response_format: { type: "json_object" } 
-  });
-
-  return { raw: aiResponse.response };
-}
-
-function aggregateExtractions(validExtractions, rawOutput) {
-  let masterRecord = {
-    distributor_summary: null,
-    gross_profit: null,
-    payments_received: null,
-    metadata: { dates_consistent: true },
-    debug: []
-  };
-
-  let referenceDate = null;
-
-  validExtractions.forEach((data, index) => {
-    masterRecord.debug.push({
-      file: `Image_${index + 1}`,
-      raw_ai_output: rawOutput
-    });
-
-    if (!data) return;
-
-    // Date Consistency Check
-    if (data.date) {
-      if (!referenceDate) referenceDate = data.date;
-      else if (referenceDate !== data.date) {
-        masterRecord.metadata.dates_consistent = false;
-      }
-    }
-
-    // Map by receipt type
-    if (data.receipt_type === 'summary') masterRecord.distributor_summary = data;
-    if (data.receipt_type === 'gross_profit') masterRecord.gross_profit = data;
-    if (data.receipt_type === 'payments') masterRecord.payments_received = data;
-  });
-
-  return masterRecord;
-}
-
-function applyDestructiveRule(masterRecord) {
-  if (!masterRecord.metadata.dates_consistent) {
-    masterRecord.distributor_summary = null;
-    masterRecord.gross_profit = null;
-    masterRecord.payments_received = null;
-  }
-  return masterRecord;
 }
 
 export async function onRequestPost(context) {
@@ -124,27 +62,81 @@ export async function onRequestPost(context) {
     const imageFiles = formData.getAll('receipts');
 
     if (!imageFiles || imageFiles.length === 0) {
-      return new Response(JSON.stringify({ error: "No images provided." }), { status: 400 });
+      return new Response(JSON.stringify({ error: "No valid images provided." }), { status: 400 });
     }
 
-    const { raw } = await extractBatch(imageFiles, context);
+    // Build the dynamic content array for Gemini
+    const parts = [];
+
+    for (const file of imageFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Image = arrayBufferToBase64(arrayBuffer);
+        const mediaType = file.type || "image/jpeg"; 
+
+        parts.push({
+            inlineData: {
+                mimeType: mediaType,
+                data: base64Image
+            }
+        });
+    }
+
+    // Add the final text instruction to the content array
+    parts.push({
+        text: "Extract the data from these receipts according to your system instructions."
+    });
+
+    // Call the Gemini API
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${context.env.GEMINI_API_KEY}`;
     
-    let extractedArray = [];
-    try {
-      // Robust Parsing: Handle string responses or direct objects
-      let parsed = typeof raw === 'string' ? JSON.parse(new RegExp(/\{[\s\S]*\}/).exec(raw)[0]) : raw;
-      
-      // Unwrap the 'receipts' key we requested in the prompt
-      extractedArray = parsed.receipts || (Array.isArray(parsed) ? parsed : [parsed]);
-    } catch (e) {
-      console.error("JSON Parse Error:", e);
-      return new Response(JSON.stringify({ error: "AI failed to return valid JSON", raw }), { status: 500 });
+    const geminiResponse = await fetch(geminiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }]
+        },
+        contents: [
+          {
+            role: "user",
+            parts: parts
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json", // Forces Gemini to output strictly parsable JSON
+          temperature: 0.1 // Low temperature for factual OCR extraction
+        }
+      })
+    });
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      throw new Error(`Gemini API Error: ${geminiResponse.status} - ${errorData}`);
     }
 
-    let masterRecord = aggregateExtractions(extractedArray, raw);
-    masterRecord = applyDestructiveRule(masterRecord);
+    const data = await geminiResponse.json();
+    
+    // Extract the text response from Gemini's payload structure
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    return new Response(JSON.stringify(masterRecord), {
+    if (!rawText) {
+       throw new Error("No content returned from Gemini.");
+    }
+
+    let parsed = null;
+    let errorMessage = null;
+
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (e) {
+      errorMessage = e.message + ": Failed to parse JSON from Gemini's response.";
+    }
+
+    const finalResponse = parsed || { error: errorMessage, raw: rawText };
+
+    return new Response(JSON.stringify(finalResponse), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -152,9 +144,4 @@ export async function onRequestPost(context) {
   } catch (err) {
     return new Response(JSON.stringify({ error: `Worker Error: ${err.message}` }), { status: 500 });
   }
-}
-
-// Warmup/License check
-export async function onRequestGet(context) {
-  return new Response("Model endpoint active.");
 }
