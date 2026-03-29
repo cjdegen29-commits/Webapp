@@ -105,7 +105,7 @@ function buildRowValues(payload) {
         payload.payments_received?.total_cash || 0,                // Col N: Cash Collected
         payload.payments_received?.total_check || 0,               // Col O: Total Chq.
         payload.distributor_summary?.total_old_dutch_credits || 0, // Col P: Total OD Credits
-        "",                                                        // Col Q: Kristi's Magic (Empty)
+        null,                                                        // Col Q: Kristi's Magic (Empty)
         payload.gross_profit?.distributor_gross_profit || 0        // Col R: Gross Profit
     ];
 }
