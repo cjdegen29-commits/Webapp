@@ -1,4 +1,3 @@
-
 /**
  * @file app.js
  * @description Client-side logic for the Distributor OCR Processor.
@@ -24,7 +23,8 @@ const BrandmarAPI = {
      */
     async processReceipts(imageFiles) {
         const formData = new FormData();
-        imageFiles.forEach(file => formData.append('images', file));
+        // Updated to 'receipts' to match what process.js is looking for
+        imageFiles.forEach(file => formData.append('receipts', file));
 
         const response = await fetch('/api/process', {
             method: 'POST',
@@ -144,8 +144,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authSection = document.getElementById('auth-section');
     const workbookSection = document.getElementById('workbook-section');
     const workbookSelect = document.getElementById('workbook-select');
-    const exportBtn = document.getElementById('export-btn'); // Assuming this is your export button ID
-    const statusMsg = document.getElementById('status-msg'); // Assuming this is your status div ID
+    const exportBtn = document.getElementById('export-btn');
+    const statusMsg = document.getElementById('status-message'); // Corrected to match index.html
+    const jsonOutput = document.getElementById('json-output');
     
     let currentExtractedData = null; // Store data temporarily after Gemini process
 
@@ -182,27 +183,84 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. The Export Button Listener
     exportBtn.addEventListener('click', async () => {
-        if (!currentExtractedData) {
-            statusMsg.innerHTML = `<span style="color: red;">No data to export. Please process images first.</span>`;
-            return;
-        }
-
-        const selectedSheetId = workbookSelect.value;
-        if (!selectedSheetId) {
-            statusMsg.innerHTML = `<span style="color: red;">Please select a target workbook.</span>`;
-            return;
-        }
-
-        exportBtn.disabled = true;
-        statusMsg.innerHTML = 'Pushing to Google Sheets...';
-
         try {
-            await BrandmarAPI.exportToSheet(selectedSheetId, currentExtractedData);
+            // Read directly from the textarea so any manual user edits are captured
+            const dataToExport = JSON.parse(jsonOutput.value);
+            
+            if (!dataToExport) {
+                statusMsg.innerHTML = `<span style="color: red;">No data to export. Please process images first.</span>`;
+                return;
+            }
+
+            const selectedSheetId = workbookSelect.value;
+            if (!selectedSheetId) {
+                statusMsg.innerHTML = `<span style="color: red;">Please select a target workbook.</span>`;
+                return;
+            }
+
+            exportBtn.disabled = true;
+            statusMsg.innerHTML = 'Pushing to Google Sheets...';
+
+            await BrandmarAPI.exportToSheet(selectedSheetId, dataToExport);
             statusMsg.innerHTML = '<span style="color: green; font-weight: bold;">Successfully added to Google Sheets!</span>';
         } catch (error) {
             statusMsg.innerHTML = `<span style="color: red; font-weight: bold;">Export Error: ${error.message}</span>`;
         } finally {
             exportBtn.disabled = false;
+        }
+    });
+
+    // 3. The Form Submit Listener
+    const ocrForm = document.getElementById('ocr-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    ocrForm.addEventListener('submit', async (e) => {
+        // Prevent the browser from refreshing the page
+        e.preventDefault();
+
+        const fileInput = document.getElementById('receipts');
+        const files = Array.from(fileInput.files);
+
+        if (files.length === 0) return;
+
+        // Update UI to show loading state
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+        statusMsg.innerHTML = 'Compressing images and sending to AI...';
+        jsonOutput.value = 'Processing...';
+        exportBtn.style.display = 'none';
+
+        try {
+            // Compress images to save bandwidth and API tokens
+            const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
+            
+            // Render the debug images to the DOM
+            renderDebugImages(compressedFiles);
+
+            // Send to the backend API
+            const extractedData = await BrandmarAPI.processReceipts(compressedFiles);
+
+            // Update UI with the results
+            currentExtractedData = extractedData;
+            jsonOutput.value = JSON.stringify(extractedData, null, 2);
+            
+            // Flag to the user if the dates on the receipts don't match
+            if (extractedData.metadata && extractedData.metadata.dates_consistent === false) {
+                 statusMsg.innerHTML = '<span style="color: orange; font-weight: bold;">Warning: Dates across receipts do not match. Please verify the data carefully before exporting.</span>';
+            } else {
+                 statusMsg.innerHTML = '<span style="color: green; font-weight: bold;">Extraction complete! Review and edit the data below before exporting.</span>';
+            }
+            
+            // Reveal the export button
+            exportBtn.style.display = 'block';
+
+        } catch (error) {
+            statusMsg.innerHTML = `<span style="color: red; font-weight: bold;">Error: ${error.message}</span>`;
+            jsonOutput.value = '';
+        } finally {
+            // Reset the submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Process Receipts';
         }
     });
 });
