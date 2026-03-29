@@ -207,13 +207,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const result = await BrandmarAPI.exportToSheet(selectedSheetId, dataToExport);
             
+            // Handle validation warnings (e.g., Column P vs Q mismatch)
             if (result.warning) {
-                statusMsg.innerHTML = `<span style="color: orange; font-weight: bold;">Exported with Warning: ${result.warning}</span>`;
+                statusMsg.innerHTML = `<span style="color: #d97706; font-weight: bold; border: 1px solid #d97706; padding: 5px; display: block;">⚠️ Warning: ${result.warning}</span>`;
             } else {
                 statusMsg.innerHTML = '<span style="color: green; font-weight: bold;">Successfully added to Google Sheets!</span>';
             }
             
-            statusMsg.innerHTML = '<span style="color: green; font-weight: bold;">Successfully added to Google Sheets!</span>';
         } catch (error) {
             statusMsg.innerHTML = `<span style="color: red; font-weight: bold;">Export Error: ${error.message}</span>`;
         } finally {
