@@ -1,3 +1,7 @@
+
+// Add new code above if possible.
+// ============================================================================
+//  BrandmarAPI: Client-Side SDK for Distributor OCR Processor
 /**
  * @file app.js
  * @description Client-side SDK and logic for the Distributor OCR Processor.
