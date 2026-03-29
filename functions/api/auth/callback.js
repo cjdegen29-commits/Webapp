@@ -1,7 +1,9 @@
 // webapp/functions/api/auth/callback.js
 
 // Callback Endpoint: GET /api/auth/callback
+// Usage: This is the redirect URI set in the Google Cloud Console for your OAuth credentials. Google will send users here after they authorize the app.
 // Description: The return destination for Google OAuth. Validates the code, fetches the access token, and sets the HTTP-Only cookie to establish the session.
+// Note: This endpoint is not meant to be called directly from the frontend. Instead, users are redirected here by Google after they complete the OAuth flow initiated at /api/auth/login.
 
 export async function onRequestGet(context) {
     const url = new URL(context.request.url);

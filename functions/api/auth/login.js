@@ -1,8 +1,9 @@
 // webapp/functions/api/auth/login.js
 
 // Authorization Endpoint: GET /api/auth/login
-// Triggered via a direct link in the HTML (e.g., <a href="/api/auth/login">). 
+// Usage: redirect user to a direct link in the HTML (e.g., <a href="/api/auth/login">). 
 // Description: Initiates the Google OAuth2 flow by redirecting the user to Google's consent screen.
+// Note: The actual handling of the OAuth callback and token exchange is done in /api/auth/callback.js.
 
 export async function onRequestGet(context) {
     const clientId = context.env.GOOGLE_CLIENT_ID;
