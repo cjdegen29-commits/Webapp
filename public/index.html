@@ -8,21 +8,48 @@
 
 <div class="container">
 
-    <h1>Scan Receipt</h1>
+    <h1>Scan Receipts</h1>
 
-    <input type="file" id="receiptInput" accept="image/*" capture="environment" multiple>
+    <div id="auth-section">
+        <p class="helper-text"><strong>Step 1:</strong> Authorize Google Sheets to enable exporting.</p>
+        <a href="/api/auth/login" id="auth-link">Authorize Google Sheets</a>
+    </div>
 
-    <p id="status"></p>
+    <div id="workbook-section" hidden>
+        <p class="helper-text"><strong>Step 1:</strong> Select Target Workbook</p>
+        <select id="workbook-select">
+            <option value="">Loading workbooks...</option>
+        </select>
+    </div>
 
-    <p class="helper-text">Take a clear photo of your receipt</p>
+    <p id="statusBox"></p>
+
+    <div>
+        <p class="helper-text"><strong>Step 2:</strong> Scan Receipts (Summary, Gross Profit, Payments)</p>
+        <form id="ocr-form">
+            <input type="file" id="receiptInput" accept="image/*" capture="environment" hidden>
+            
+            <button type="button" id="add-photo-btn">Scan Receipt Page</button>
+            
+            <div id="preview-container"></div>
+            
+            <button type="submit" id="submit-btn" disabled>Process Receipts</button>
+        </form>
+    </div>
 
     <img id="preview" width="300">
 
-    <div id="result"></div>
+    <div id="result-section" hidden>
+        <p class="helper-text"><strong>Step 3:</strong> Review and edit the extracted data.</p>
+        <textarea id="json-output"></textarea>
+        
+        <button id="export-btn">Confirm & Send to Sheets</button>
+    </div>
 
     <button>Upload</button>
 </div>
 <script src="Website.js"></script>
+<script src="brandmar-api.js"></script>
 
 </body>
 </html>
