@@ -217,10 +217,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             exportBtn.textContent = 'Confirm & Send to Sheets';
         }
     });
-});
 
-// Helper function to update the status box UI
+    // Helper function to update the status box UI
     function showStatus(message, type = 'info') {
         statusBox.textContent = message;
         statusBox.className = type; // Applies 'info', 'success', 'error', or 'warning'
     }
+});
+
