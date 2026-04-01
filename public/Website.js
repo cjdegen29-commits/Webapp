@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const jsonOutput = document.getElementById('json-output');
     const exportBtn = document.getElementById('export-btn');
     const pickerBtn = document.getElementById('picker-btn');
+    const statusBox = document.getElementById('statusBox');
 
     // ========================================================================
     // 1. Authentication & Initialization
