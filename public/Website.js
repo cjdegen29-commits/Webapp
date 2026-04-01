@@ -56,15 +56,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         receiptInput.click();
     });
 
-    // When the camera returns a photo, add it to our array and update the UI
+    // When the input returns photo(s), add them to our array and update the UI
     receiptInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        // Convert the FileList object to a standard JavaScript array
+        const newFiles = Array.from(e.target.files);
+        
+        if (newFiles.length === 0) return;
 
-        scannedFiles.push(file);
+        // Push every selected file into our staging array
+        newFiles.forEach(file => {
+            scannedFiles.push(file);
+        });
+
         updatePreviews();
         
-        // Reset the input value so the camera can capture the same filename again if needed
+        // Reset the input value so the same filename can be selected again if needed
         receiptInput.value = ''; 
     });
 
