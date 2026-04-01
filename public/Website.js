@@ -1,4 +1,4 @@
-const GOOGLE_API_KEY = AIzaSyA6_RRqlSfCS-GrQ8651xyjGFQNe5fMOMo
+const GOOGLE_API_KEY = "AIzaSyA6_RRqlSfCS-GrQ8651xyjGFQNe5fMOMo";
 
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM Elements
