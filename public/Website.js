@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const previewContainer = document.getElementById('preview-container');
     const ocrForm = document.getElementById('ocr-form');
     const submitBtn = document.getElementById('submit-btn');
-    const statusBox = document.getElementById('statusBox');
     const resultSection = document.getElementById('result-section');
     const jsonOutput = document.getElementById('json-output');
     const exportBtn = document.getElementById('export-btn');
@@ -115,28 +114,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Processing...';
-        statusBox.textContent = 'Compressing images and sending to AI...';
+        showStatus('Compressing images and sending to AI...', 'info');
         resultSection.hidden = true;
 
         try {
-            // Compress the files from our array
             const compressedFiles = await Promise.all(scannedFiles.map(f => BrandmarAPI.compressImage(f)));
-            
-            // Send to OCR API
             const extractedData = await BrandmarAPI.processReceipts(compressedFiles);
 
-            // Populate the textarea for user review
             jsonOutput.value = JSON.stringify(extractedData, null, 2);
             resultSection.hidden = false;
             
             if (extractedData.metadata?.dates_consistent === false) {
-                statusBox.textContent = 'Warning: Dates across receipts do not match. Please verify carefully.';
+                showStatus('Warning: Dates across receipts do not match. Please verify carefully.', 'warning'); // UPDATED
             } else {
-                statusBox.textContent = 'Extraction complete! Review data below.';
+                showStatus('Extraction complete! Review data below.', 'success'); // UPDATED
             }
 
         } catch (error) {
-            statusBox.textContent = `Error: ${error.message}`;
+            showStatus(`Error: ${error.message}`, 'error'); // UPDATED
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Process Receipts';
@@ -152,29 +147,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             const selectedSheetId = workbookSelect.value;
 
             if (!selectedSheetId) {
-                statusBox.textContent = 'Please select a target workbook.';
+                showStatus('Please select a target workbook.', 'error'); // UPDATED
                 return;
             }
 
             exportBtn.disabled = true;
             exportBtn.textContent = 'Exporting...';
-            statusBox.textContent = 'Pushing to Google Sheets...';
+            showStatus('Pushing to Google Sheets...', 'info'); // UPDATED
 
-            // Send payload to the backend sheets API
             const result = await BrandmarAPI.exportToSheet(selectedSheetId, dataToExport);
             
-            // Handle validation warnings (e.g., Column P vs Q mismatch)
             if (result.warning) {
-                statusBox.textContent = `Warning: ${result.warning}`;
+                showStatus(`Warning: ${result.warning}`, 'warning'); // UPDATED
             } else {
-                statusBox.textContent = 'Successfully added to Google Sheets!';
+                showStatus('Successfully added to Google Sheets!', 'success'); // UPDATED
             }
             
         } catch (error) {
-            statusBox.textContent = `Export Error: ${error.message}`;
+            showStatus(`Export Error: ${error.message}`, 'error'); // UPDATED
         } finally {
             exportBtn.disabled = false;
             exportBtn.textContent = 'Confirm & Send to Sheets';
         }
     });
 });
+
+// Helper function to update the status box UI
+    function showStatus(message, type = 'info') {
+        statusBox.textContent = message;
+        statusBox.className = type; // Applies 'info', 'success', 'error', or 'warning'
+    }
