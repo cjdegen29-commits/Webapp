@@ -56,9 +56,8 @@ globalThis.BrandmarAPI = {
      * The backend will verify the session cookie and return the token if valid.
      * * @returns {Promise<string>} - The Google API access token.
      */
-    async getAuthToken() {
+    async getAuthResponse() {
         const authData = await this.getAuthResponse();
-        if (!authData.ok) throw new Error("Unauthorized.");
         return await authData.access_token;
     },
 
