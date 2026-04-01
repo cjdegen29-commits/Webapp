@@ -57,13 +57,9 @@ globalThis.BrandmarAPI = {
      * * @returns {Promise<string>} - The Google API access token.
      */
     async getAuthToken() {
-        const response = await fetch('/api/auth/token', { method: 'GET' });
-        if (!response.ok) {
-            if (response.status === 401) throw new Error("unauthorized");
-            throw new Error("Failed to fetch auth token");
-        }
-        const data = await response.json();
-        return data.access_token;
+        const authData = await this.getAuthResponse();
+        if (!authData.ok) throw new Error("Unauthorized.");
+        return await authData.access_token;
     },
 
     /**
@@ -75,8 +71,14 @@ globalThis.BrandmarAPI = {
     async openGooglePicker(developerKey) {
         return new Promise(async (resolve, reject) => {
             try {
-                const token = await this.getAuthToken();
+                // Now returns { access_token, client_id }
+                const authData = await this.getAuthResponse(); 
+                const token = authData.access_token;
+                const clientId = authData.client_id;
                 
+                // Extract the numeric App ID from the Client ID string
+                const appId = clientId.split('-')[0];
+
                 if (typeof gapi === 'undefined') {
                     return reject(new Error("Google API script not loaded."));
                 }
