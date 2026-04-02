@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <head>
-    <title>Receipt Scanner</title>
+    <title>Brandmar OCR</title>
     <link rel="stylesheet" href="Website.css">
     <script src="https://apis.google.com/js/api.js"></script>
 </head>
@@ -12,7 +12,7 @@
 
     <div id="auth-section">
         <p class="helper-text"><strong>Step 1:</strong> Authorize Google Sheets to enable exporting.</p>
-        <a href="/api/auth/login" id="auth-link">Authorize Google Sheets</a>
+        <button type="button" id="auth-link" onclick="window.location.href='/api/auth/login'">Authorize Google Sheets</button>
     </div>
 
     <div id="workbook-section" hidden>

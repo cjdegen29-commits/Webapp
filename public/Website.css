@@ -129,7 +129,20 @@ footer {
 }
 
 footer a {
-    color: blue;
+    color: blueviolet;
     text-decoration: none;
 
+}
+#auth-link {
+    background-color: #2196F3; 
+    width: 100%; 
+    padding: 10px; 
+    color: white; 
+    border: none; 
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#auth-link:hover {
+    background-color: #145488; 
 }
