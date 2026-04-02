@@ -146,3 +146,11 @@ footer a {
 #auth-link:hover {
     background-color: #145488; 
 }
+
+#result-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #282855;
+    border-radius: 8px;
+    color: #b9afaf;
+}
