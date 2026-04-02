@@ -58,6 +58,7 @@
     <ul>
         <li><strong>Processing OCR (Optical Character Recognition):</strong> Your receipt images are compressed on your device and sent to our secure backend, which forwards them to Google Gemini AI to extract the relevant financial text.</li>
         <li><strong>Exporting to Google Sheets:</strong> We use your Google OAuth access token to list available "Brandmar Holdings" workbooks, duplicate template sheets when a new month begins, and write the extracted financial data directly into your selected Google Sheet.</li>
+        <li><strong>the application only accesses Google Sheets specifically selected by the user through the secure Google Picker interface and does not have access to any other files in the user's Google Drive.</strong></li>
         <li><strong>Session Management:</strong> We use securely stored tokens to keep you logged in without requiring you to repeatedly authenticate.</li>
     </ul>
 
